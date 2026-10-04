@@ -33,3 +33,12 @@ MonoBehaviour:
     \uC544\uB2C8\uB77C \uC900\uBE44\uB77C\uACE0 \uACBD\uACE0\uD588\uB2E4. \uC81C\uAD6D\uC740
     \uAC00\uC7A5 \uAC15\uD588\uC73C\uB098, \uB3D9\uC2DC\uC5D0 \uAC00\uC7A5 \uBA3C\uC800
     \uD53C\uB97C \uD758\uB9B4 \uB098\uB77C\uC600\uB2E4."
+  flag: {fileID: 0}
+  flagColor: {r: 0.72, g: 0.13, b: 0.16, a: 1}
+  startingStats:
+    gdp: 180000000
+    literacy: 0.41
+    averageEducation: 4.8
+    standardOfLiving: 11.2
+    population: 32500000
+    infamy: 0

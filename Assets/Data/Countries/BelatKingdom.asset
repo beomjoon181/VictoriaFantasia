@@ -26,3 +26,12 @@ MonoBehaviour:
     \uAC15\uD574\uC9C0\uC9C0 \uC54A\uAC8C \uADE0\uD615\uC744 \uB9DE\uCDC4\uB2E4.
     \uC655\uAD6D\uC758 \uADC0\uC871\uB4E4\uC740 \uC774\uB97C \uC601\uB9AC\uD55C \uC678\uAD50\uB77C
     \uCE6D\uC1A1\uD588\uB2E4."
+  flag: {fileID: 0}
+  flagColor: {r: 0.13, g: 0.32, b: 0.62, a: 1}
+  startingStats:
+    gdp: 120000000
+    literacy: 0.48
+    averageEducation: 5.6
+    standardOfLiving: 13.4
+    population: 14200000
+    infamy: 0

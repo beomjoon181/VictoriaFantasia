@@ -150,6 +150,58 @@ public static class EditorUiFactory
     }
 
     /// <summary>
+    /// 단색(또는 스프라이트) Image 오브젝트를 만든다. 위치/크기는 부모 중앙 기준이다.
+    /// </summary>
+    /// <param name="name">오브젝트 이름</param>
+    /// <param name="parent">부모 Transform</param>
+    /// <param name="color">이미지 색</param>
+    /// <param name="pos">부모 중앙 기준 위치</param>
+    /// <param name="size">이미지 크기</param>
+    /// <param name="sprite">사용할 스프라이트 (null 이면 단색 사각형)</param>
+    public static Image CreateImage(string name, Transform parent, Color color, Vector2 pos, Vector2 size, Sprite sprite = null)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(parent, false);
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = size;
+        var image = go.GetComponent<Image>();
+        image.color = color;
+        image.sprite = sprite;
+        return image;
+    }
+
+    /// <summary>
+    /// 그래픽에 테두리(Outline 효과)를 추가한다.
+    /// </summary>
+    /// <param name="target">테두리를 그릴 그래픽 오브젝트</param>
+    /// <param name="color">테두리 색</param>
+    /// <param name="thickness">테두리 두께(px)</param>
+    public static void AddBorder(Component target, Color color, float thickness = 2f)
+    {
+        var outline = target.gameObject.AddComponent<Outline>();
+        outline.effectColor = color;
+        outline.effectDistance = new Vector2(thickness, -thickness);
+    }
+
+    /// <summary>
+    /// 앵커/피벗을 함께 지정해 화면 가장자리 기준으로 배치한다.
+    /// 예) anchor=(0,1), pivot=(0,1) 이면 부모 왼쪽 위 모서리 기준 배치.
+    /// </summary>
+    /// <param name="rt">배치할 RectTransform</param>
+    /// <param name="anchor">앵커 지점 (0~1)</param>
+    /// <param name="pivot">자신의 기준점 (0~1)</param>
+    /// <param name="pos">앵커 기준 위치</param>
+    /// <param name="size">크기</param>
+    public static void Anchor(RectTransform rt, Vector2 anchor, Vector2 pivot, Vector2 pos, Vector2 size)
+    {
+        rt.anchorMin = rt.anchorMax = anchor;
+        rt.pivot = pivot;
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = size;
+    }
+
+    /// <summary>
     /// RectTransform 이 부모 영역 전체를 채우도록 앵커와 오프셋을 설정한다.
     /// </summary>
     public static void StretchToParent(RectTransform rt)

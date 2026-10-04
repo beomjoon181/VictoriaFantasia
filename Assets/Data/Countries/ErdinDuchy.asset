@@ -21,3 +21,12 @@ MonoBehaviour:
     \uD48D\uBD80\uD55C \uAD11\uBB3C\uACFC \uC624\uB798\uB41C \uB9C8\uB3C4 \uACF5\uBC29\uB4E4\uC774
     \uC228\uC5B4 \uC788\uC5C8\uB2E4. \uB2E4\uB978 \uB098\uB77C\uB4E4\uC740 \uC5D0\uB974\uB518\uC744
     \uC548\uC804\uD55C \uD6C4\uBC29\uC758 \uC791\uC740 \uB098\uB77C\uB77C \uC595\uBCF8\uB2E4."
+  flag: {fileID: 0}
+  flagColor: {r: 0.78, g: 0.57, b: 0.16, a: 1}
+  startingStats:
+    gdp: 34000000
+    literacy: 0.35
+    averageEducation: 4
+    standardOfLiving: 9.3
+    population: 2800000
+    infamy: 0

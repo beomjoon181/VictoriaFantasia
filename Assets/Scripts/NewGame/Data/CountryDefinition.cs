@@ -16,6 +16,17 @@ public class CountryDefinition : ScriptableObject
     [Tooltip("국가 선택 화면 중앙에 표시될 배경 설명")]
     [SerializeField, TextArea(5, 20)] string description;
 
+    [Header("국기")]
+    [Tooltip("국기 이미지. 비워두면 국기 색 + 국가 이름 첫 글자로 대신 표시한다.")]
+    [SerializeField] Sprite flag;
+
+    [Tooltip("국기 이미지가 없을 때 사용할 대표 색")]
+    [SerializeField] Color flagColor = Color.gray;
+
+    [Header("게임 시작 시 국가 지표")]
+    [Tooltip("InGame 시작 시점의 GDP, 식자율, 교육, 생활수준, 인구, 악명")]
+    [SerializeField] NationStats startingStats;
+
     /// <summary>화면 표시용 국가 이름</summary>
     public string DisplayName => displayName;
 
@@ -24,4 +35,13 @@ public class CountryDefinition : ScriptableObject
 
     /// <summary>국가 배경 설명</summary>
     public string Description => description;
+
+    /// <summary>국기 이미지 (없으면 null)</summary>
+    public Sprite Flag => flag;
+
+    /// <summary>국기 대표 색 (국기 이미지가 없을 때 사용)</summary>
+    public Color FlagColor => flagColor;
+
+    /// <summary>게임 시작 시 국가 지표</summary>
+    public NationStats StartingStats => startingStats;
 }
