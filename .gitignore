@@ -1,0 +1,81 @@
+# ==========================================================
+# VictoriaFantasia - Git 무시 목록
+# ==========================================================
+
+# ----------------------------------------------------------
+# Claude Code 관련 (기존 규칙 유지)
+# ----------------------------------------------------------
+.claude/*.md
+.claude
+
+# ----------------------------------------------------------
+# Unity 자동 생성 폴더
+# 에디터가 언제든 다시 만들 수 있는 캐시/임시 데이터이므로 커밋하지 않는다.
+# (앞의 '/'는 프로젝트 루트에 있는 폴더만 대상으로 한다는 뜻)
+# ----------------------------------------------------------
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Asset Store 도구가 만드는 폴더
+/[Aa]ssets/AssetStoreTools*
+
+# Gradle 캐시 (안드로이드 빌드)
+.gradle/
+
+# ----------------------------------------------------------
+# IDE / 에디터 생성 파일 (Visual Studio, Rider, VS Code)
+# Unity가 솔루션/프로젝트 파일을 자동 생성하므로 커밋하지 않는다.
+# ----------------------------------------------------------
+.vs/
+.idea/
+.vscode/
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# 삭제된 파일에 대해 Unity가 남기는 .meta 파일
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# ----------------------------------------------------------
+# 빌드 결과물 / 크래시 리포트
+# ----------------------------------------------------------
+sysinfo.txt
+crashlytics-build.properties
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Addressables 빌드 결과물
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# ----------------------------------------------------------
+# 운영체제 생성 파일
+# ----------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini

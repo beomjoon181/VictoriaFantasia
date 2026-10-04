@@ -1,0 +1,102 @@
+# ==========================================================
+# VictoriaFantasia - Git 속성 설정
+# 줄바꿈(LF/CRLF) 통일과 바이너리 파일 처리를 위한 설정
+# ==========================================================
+
+# 기본 규칙: Git이 텍스트/바이너리를 자동 판별하고,
+# 텍스트 파일은 저장소에 LF로 저장한다.
+* text=auto
+
+# ----------------------------------------------------------
+# Unity YAML 직렬화 에셋 (Force Text 모드)
+# 운영체제와 무관하게 항상 LF로 유지해 불필요한 diff를 방지한다.
+# ----------------------------------------------------------
+*.meta          text eol=lf
+*.unity         text eol=lf
+*.prefab        text eol=lf
+*.asset         text eol=lf
+*.mat           text eol=lf
+*.anim          text eol=lf
+*.controller    text eol=lf
+*.overrideController text eol=lf
+*.physicMaterial text eol=lf
+*.physicsMaterial2D text eol=lf
+*.playable      text eol=lf
+*.mask          text eol=lf
+*.brush         text eol=lf
+*.flare         text eol=lf
+*.fontsettings  text eol=lf
+*.guiskin       text eol=lf
+*.giparams      text eol=lf
+*.renderTexture text eol=lf
+*.spriteatlas   text eol=lf
+*.spriteatlasv2 text eol=lf
+*.terrainlayer  text eol=lf
+*.mixer         text eol=lf
+*.shadervariants text eol=lf
+*.preset        text eol=lf
+*.lighting      text eol=lf
+*.signal        text eol=lf
+
+# ----------------------------------------------------------
+# 소스 코드 / 셰이더 / 설정 파일
+# ----------------------------------------------------------
+*.cs            text diff=csharp
+*.shader        text
+*.cginc         text
+*.hlsl          text
+*.compute       text
+*.uss           text
+*.uxml          text
+*.asmdef        text
+*.asmref        text
+*.json          text
+*.xml           text
+*.yaml          text
+*.yml           text
+*.md            text
+*.txt           text
+
+# ----------------------------------------------------------
+# 바이너리 파일: 줄바꿈 변환 및 텍스트 diff를 하지 않는다.
+# ----------------------------------------------------------
+# 이미지
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.bmp           binary
+*.tga           binary
+*.tif           binary
+*.tiff          binary
+*.psd           binary
+*.exr           binary
+*.hdr           binary
+*.ico           binary
+# 3D 모델
+*.fbx           binary
+*.obj           binary
+*.blend         binary
+*.dae           binary
+*.3ds           binary
+*.max           binary
+# 오디오
+*.wav           binary
+*.mp3           binary
+*.ogg           binary
+*.aif           binary
+*.aiff          binary
+# 비디오
+*.mp4           binary
+*.mov           binary
+*.webm          binary
+# 폰트
+*.ttf           binary
+*.otf           binary
+# 기타 (네이티브 플러그인, 압축 파일, 문서 등)
+*.dll           binary
+*.so            binary
+*.a             binary
+*.zip           binary
+*.unitypackage  binary
+*.pdf           binary
