@@ -13,6 +13,7 @@ using UnityEngine.UI;
 /// - 왼쪽 중앙 : 정부 / 정치 / 건물 / 외교 / 시장 / 군사 / 기술 버튼
 /// - 아래 중앙 : 구역 / 건설 / 통계 원형 버튼
 /// - 중앙      : 메뉴 버튼으로 여는 화면 창 (현재는 "준비 중" 안내)
+/// - 배경      : 3D 대륙 지도 (WorldMapBuilder 가 생성. 마왕국 = 메마른 땅, 나머지 = 평야, 원근 카메라로 비스듬히 내려다봄)
 /// </summary>
 public static class InGameBuilder
 {
@@ -22,6 +23,14 @@ public static class InGameBuilder
     const string CountryFolder = "Assets/Data/Countries";
     const string FallbackDifficultyPath = "Assets/Data/Difficulties/Normal.asset";
     const string FallbackCountryPath = "Assets/Data/Countries/ArkeniaEmpire.asset";
+    const string FundsRulesPath = "Assets/Data/FundsRules.asset";
+
+    // ───────────── 왼쪽 위 바 레이아웃 (1920x1080 기준) ─────────────
+    // 오른쪽 위 시간 패널(폭 460)과 겹치지 않도록 바 전체 폭을 1400 이하로 유지한다.
+    const float HeaderWidth = 1400f;
+    const float StatStartX = 180f;   // 국기 오른쪽에서 지표 칸이 시작되는 x
+    const float StatStep = 132f;     // 지표 칸 간격
+    const float FundStep = 206f;     // 자금 칸 간격 (게이지가 있어 더 넓음)
 
     // ───────────── 색상 팔레트 ─────────────
     static readonly Color SeaColor = new Color(0.09f, 0.17f, 0.25f);
@@ -39,13 +48,17 @@ public static class InGameBuilder
     {
         // 씬 전환 전에 에셋 변경을 디스크에 저장한다. (미저장 에셋이 씬 전환 중 언로드되는 것 방지)
         ApplyDefaultCountryData();
+        EnsureFundsRules();
         EditorSpriteGenerator.EnsureCircleSprite(CircleSpritePath);
         AssetDatabase.SaveAssets();
 
         var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
         var cam = Camera.main;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = SeaColor; // 지도가 들어오기 전까지 바다색 배경
+        cam.backgroundColor = SeaColor; // 지도 바깥은 바다색으로 보인다
+
+        // 3D 대륙 지도(지형 + 바다 + 국경선)를 깔고 카메라·태양광을 지도에 맞춘다. (HUD 는 그 위 오버레이 캔버스)
+        WorldMapBuilder.BuildMap(cam);
 
         var circle = AssetDatabase.LoadAssetAtPath<Sprite>(CircleSpritePath);
         var font = EditorUiFactory.DefaultFont;
@@ -53,13 +66,14 @@ public static class InGameBuilder
         var canvas = CreateCanvas();
         new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
 
-        var header = BuildNationHeader(canvas, font);
+        var header = BuildNationHeader(canvas, font, out var personalFundsView, out var nationalBudgetView);
         var clockView = BuildClockPanel(canvas, font, circle);
         var leftButtons = BuildLeftMenu(canvas, font, circle);
         var bottomButtons = BuildBottomMenu(canvas, font, circle);
         var window = BuildMenuWindow(canvas, font, circle);
         BuildRouter(canvas, window, leftButtons, bottomButtons);
-        BuildSystems(header, clockView);
+        var toast = BuildToast(canvas, font); // 창보다 나중에 만들어 항상 위에 그려지게 한다
+        BuildSystems(header, clockView, personalFundsView, nationalBudgetView, toast);
 
         EditorSceneManager.SaveScene(scene, ScenePath);
     }
@@ -103,6 +117,19 @@ public static class InGameBuilder
         EditorUtility.SetDirty(country);
     }
 
+    /// <summary>
+    /// 자금 규칙 에셋이 없으면 기본값(개인 자금 500K, 상한 = GDP의 10% / 국가 예산 상한 = GDP의 두 배)으로 만든다.
+    /// 이미 있으면 수정하지 않는다.
+    /// </summary>
+    static void EnsureFundsRules()
+    {
+        if (AssetDatabase.LoadAssetAtPath<FundsRules>(FundsRulesPath) != null)
+            return;
+
+        // 필드 기본값이 곧 기획 기본값이므로 인스턴스를 그대로 저장한다.
+        AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<FundsRules>(), FundsRulesPath);
+    }
+
     // ═════════════════════════ HUD 구성 ═════════════════════════
 
     /// <summary>
@@ -120,12 +147,17 @@ public static class InGameBuilder
     }
 
     /// <summary>
-    /// 왼쪽 위 국가 정보 바: 국기 + 지표 6칸(항목명 / 값).
+    /// 왼쪽 위 국가 정보 바: 국기 + 지표 6칸(항목명 / 값) + 자금 2칸(개인 자금, 국가 예산; 값 + 게이지).
     /// </summary>
-    static NationHeaderView BuildNationHeader(Transform canvas, Font font)
+    /// <param name="canvas">HUD 캔버스</param>
+    /// <param name="font">폰트</param>
+    /// <param name="personalFundsView">생성된 개인 자금 칸</param>
+    /// <param name="nationalBudgetView">생성된 국가 예산 칸</param>
+    static NationHeaderView BuildNationHeader(Transform canvas, Font font,
+        out CappedFundView personalFundsView, out CappedFundView nationalBudgetView)
     {
         var bar = EditorUiFactory.CreateImage("NationHeader", canvas, PanelColor, Vector2.zero, Vector2.zero);
-        EditorUiFactory.Anchor(bar.rectTransform, new Vector2(0, 1), new Vector2(0, 1), Vector2.zero, new Vector2(1080, 112));
+        EditorUiFactory.Anchor(bar.rectTransform, new Vector2(0, 1), new Vector2(0, 1), Vector2.zero, new Vector2(HeaderWidth, 112));
         EditorUiFactory.AddBorder(bar, GoldColor);
 
         // 국기 (이미지가 없으면 국기 색 + 첫 글자)
@@ -141,7 +173,12 @@ public static class InGameBuilder
         string[] captions = { "GDP", "식자율", "평균 교육수준", "생활수준", "인구 수", "악명" };
         var values = new Text[captions.Length];
         for (var i = 0; i < captions.Length; i++)
-            values[i] = CreateStatCell(bar.transform, font, captions[i], new Vector2(180 + i * 148, 0));
+            values[i] = CreateStatCell(bar.transform, font, captions[i], new Vector2(StatStartX + i * StatStep, 0));
+
+        // 자금 2칸 (지표 칸 바로 오른쪽)
+        var fundStartX = StatStartX + captions.Length * StatStep;
+        personalFundsView = CreateFundCell(bar.transform, font, "PersonalFunds", "개인 자금", new Vector2(fundStartX, 0));
+        nationalBudgetView = CreateFundCell(bar.transform, font, "NationalBudget", "국가 예산", new Vector2(fundStartX + FundStep, 0));
 
         var view = bar.gameObject.AddComponent<NationHeaderView>();
         var so = new SerializedObject(view);
@@ -166,19 +203,65 @@ public static class InGameBuilder
     /// <param name="topLeft">바 왼쪽 위 기준 칸 위치</param>
     static Text CreateStatCell(Transform parent, Font font, string caption, Vector2 topLeft)
     {
+        var width = StatStep - 4f;
         var cell = EditorUiFactory.CreateRect($"Stat_{caption}", parent, Vector2.zero, Vector2.zero);
-        EditorUiFactory.Anchor(cell, new Vector2(0, 1), new Vector2(0, 1), topLeft, new Vector2(140, 112));
+        EditorUiFactory.Anchor(cell, new Vector2(0, 1), new Vector2(0, 1), topLeft, new Vector2(width, 112));
+        CreateDivider(cell);
 
-        // 칸 사이 구분선
-        var divider = EditorUiFactory.CreateImage("Divider", cell, new Color(GoldColor.r, GoldColor.g, GoldColor.b, 0.35f), Vector2.zero, Vector2.zero);
-        EditorUiFactory.Anchor(divider.rectTransform, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-4, 0), new Vector2(2, 70));
-
-        var captionText = EditorUiFactory.CreateText("Caption", cell, caption, font, 20, new Vector2(0, 24), new Vector2(140, 30), bold: false);
+        var captionText = EditorUiFactory.CreateText("Caption", cell, caption, font, 18, new Vector2(0, 24), new Vector2(width, 30), bold: false);
         captionText.color = CaptionColor;
 
-        var valueText = EditorUiFactory.CreateText("Value", cell, "-", font, 32, new Vector2(0, -16), new Vector2(140, 44));
+        var valueText = EditorUiFactory.CreateText("Value", cell, "-", font, 30, new Vector2(0, -16), new Vector2(width, 44));
         valueText.gameObject.AddComponent<Shadow>();
         return valueText;
+    }
+
+    /// <summary>
+    /// 자금 한 칸(위: 항목명, 가운데: "$현재액 / 상한", 아래: 게이지)을 만들고 뷰를 반환한다.
+    /// </summary>
+    /// <param name="parent">국가 정보 바</param>
+    /// <param name="font">폰트</param>
+    /// <param name="id">오브젝트 이름용 식별자</param>
+    /// <param name="caption">항목명</param>
+    /// <param name="topLeft">바 왼쪽 위 기준 칸 위치</param>
+    static CappedFundView CreateFundCell(Transform parent, Font font, string id, string caption, Vector2 topLeft)
+    {
+        var width = FundStep - 6f;
+        var cell = EditorUiFactory.CreateRect($"Fund_{id}", parent, Vector2.zero, Vector2.zero);
+        EditorUiFactory.Anchor(cell, new Vector2(0, 1), new Vector2(0, 1), topLeft, new Vector2(width, 112));
+        CreateDivider(cell);
+
+        var captionText = EditorUiFactory.CreateText("Caption", cell, caption, font, 18, new Vector2(0, 32), new Vector2(width, 28), bold: false);
+        captionText.color = CaptionColor;
+
+        var valueText = EditorUiFactory.CreateText("Value", cell, "-", font, 28, new Vector2(0, 0), new Vector2(width, 40));
+        valueText.gameObject.AddComponent<Shadow>();
+
+        // 게이지: 어두운 바탕 위에 채움 영역을 얹고, 채움 영역의 가로 앵커로 비율을 표현한다.
+        var gaugeBack = EditorUiFactory.CreateImage("Gauge", cell, new Color(0.05f, 0.05f, 0.07f), new Vector2(0, -32), new Vector2(width - 24f, 12));
+        EditorUiFactory.AddBorder(gaugeBack, new Color(GoldColor.r, GoldColor.g, GoldColor.b, 0.6f), 1f);
+        var fill = EditorUiFactory.CreateImage("Fill", gaugeBack.transform, GoldColor, Vector2.zero, Vector2.zero);
+        fill.rectTransform.anchorMin = Vector2.zero;
+        fill.rectTransform.anchorMax = new Vector2(0f, 1f);
+        fill.rectTransform.pivot = new Vector2(0f, 0.5f);
+        fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
+
+        var view = cell.gameObject.AddComponent<CappedFundView>();
+        var so = new SerializedObject(view);
+        so.FindProperty("valueText").objectReferenceValue = valueText;
+        so.FindProperty("gaugeFill").objectReferenceValue = fill.rectTransform;
+        so.FindProperty("gaugeFillImage").objectReferenceValue = fill;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return view;
+    }
+
+    /// <summary>
+    /// 칸 왼쪽에 반투명 금색 세로 구분선을 그린다.
+    /// </summary>
+    static void CreateDivider(RectTransform cell)
+    {
+        var divider = EditorUiFactory.CreateImage("Divider", cell, new Color(GoldColor.r, GoldColor.g, GoldColor.b, 0.35f), Vector2.zero, Vector2.zero);
+        EditorUiFactory.Anchor(divider.rectTransform, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-4, 0), new Vector2(2, 70));
     }
 
     /// <summary>
@@ -298,6 +381,33 @@ public static class InGameBuilder
     }
 
     /// <summary>
+    /// 화면 상단 중앙(국가 정보 바 아래)의 안내 메시지(토스트)를 만든다.
+    /// 평소에는 투명하며, 메시지가 오면 잠깐 나타났다 사라진다.
+    /// </summary>
+    static HudToastView BuildToast(Transform canvas, Font font)
+    {
+        var panel = EditorUiFactory.CreateImage("Toast", canvas, new Color(0.35f, 0.08f, 0.08f, 1f), Vector2.zero, Vector2.zero);
+        EditorUiFactory.Anchor(panel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -170), new Vector2(480, 72));
+        EditorUiFactory.AddBorder(panel, GoldColor);
+        panel.raycastTarget = false; // 안내창이 클릭을 가로막지 않도록
+
+        var message = EditorUiFactory.CreateText("Message", panel.transform, "", font, 32, Vector2.zero, Vector2.zero);
+        EditorUiFactory.StretchToParent(message.rectTransform);
+        message.raycastTarget = false;
+        message.gameObject.AddComponent<Shadow>();
+
+        var group = panel.gameObject.AddComponent<CanvasGroup>();
+        group.alpha = 0f;
+
+        var toast = panel.gameObject.AddComponent<HudToastView>();
+        var so = new SerializedObject(toast);
+        so.FindProperty("group").objectReferenceValue = group;
+        so.FindProperty("messageText").objectReferenceValue = message;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return toast;
+    }
+
+    /// <summary>
     /// 메뉴 버튼들과 창을 연결하는 라우터를 HUD 캔버스에 붙인다.
     /// </summary>
     static void BuildRouter(Transform canvas, HudMenuWindow window, HudMenuButton[] left, HudMenuButton[] bottom)
@@ -317,7 +427,8 @@ public static class InGameBuilder
     /// <summary>
     /// 게임 시스템 오브젝트(시계, 키보드 입력, 부트스트랩)를 만들고 참조를 연결한다.
     /// </summary>
-    static void BuildSystems(NationHeaderView header, GameClockView clockView)
+    static void BuildSystems(NationHeaderView header, GameClockView clockView,
+        CappedFundView personalFundsView, CappedFundView nationalBudgetView, HudToastView toast)
     {
         var systems = new GameObject("GameSystems");
         var clock = systems.AddComponent<GameClock>();
@@ -332,6 +443,10 @@ public static class InGameBuilder
         so.FindProperty("clock").objectReferenceValue = clock;
         so.FindProperty("nationHeader").objectReferenceValue = header;
         so.FindProperty("clockView").objectReferenceValue = clockView;
+        so.FindProperty("personalFundsView").objectReferenceValue = personalFundsView;
+        so.FindProperty("nationalBudgetView").objectReferenceValue = nationalBudgetView;
+        so.FindProperty("toastView").objectReferenceValue = toast;
+        so.FindProperty("fundsRules").objectReferenceValue = AssetDatabase.LoadAssetAtPath<FundsRules>(FundsRulesPath);
         so.FindProperty("fallbackDifficulty").objectReferenceValue = AssetDatabase.LoadAssetAtPath<DifficultyDefinition>(FallbackDifficultyPath);
         so.FindProperty("fallbackCountry").objectReferenceValue = AssetDatabase.LoadAssetAtPath<CountryDefinition>(FallbackCountryPath);
         so.ApplyModifiedPropertiesWithoutUndo();

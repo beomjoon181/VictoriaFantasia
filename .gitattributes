@@ -100,3 +100,9 @@
 *.zip           binary
 *.unitypackage  binary
 *.pdf           binary
+
+# ----------------------------------------------------------
+# Unity 가 바이너리로 저장하는 .asset (TerrainData 등).
+# 위의 "*.asset text eol=lf" 규칙이 적용되면 줄바꿈 변환으로 파일이 손상되므로 바이너리로 지정한다.
+# ----------------------------------------------------------
+Assets/Data/Map/WorldTerrain.asset  binary
