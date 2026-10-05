@@ -18,6 +18,19 @@ public class InGameBootstrap : MonoBehaviour
     [Tooltip("오른쪽 위 날짜/속도 패널")]
     [SerializeField] GameClockView clockView;
 
+    [Tooltip("왼쪽 위 바의 개인 자금 칸")]
+    [SerializeField] CappedFundView personalFundsView;
+
+    [Tooltip("왼쪽 위 바의 국가 예산 칸")]
+    [SerializeField] CappedFundView nationalBudgetView;
+
+    [Tooltip("화면 상단 중앙 안내 메시지(토스트)")]
+    [SerializeField] HudToastView toastView;
+
+    [Header("규칙 데이터")]
+    [Tooltip("개인 자금/국가 예산의 보유 상한(GDP 비율)과 개인 자금 초기값")]
+    [SerializeField] FundsRules fundsRules;
+
     [Header("에디터 테스트용 기본값")]
     [Tooltip("NewGame 을 거치지 않고 InGame 씬을 바로 실행했을 때 사용할 난이도")]
     [SerializeField] DifficultyDefinition fallbackDifficulty;
@@ -31,16 +44,56 @@ public class InGameBootstrap : MonoBehaviour
     /// <summary>플레이어가 조종하는 국가의 런타임 상태</summary>
     public PlayerNation PlayerNation { get; private set; }
 
+    /// <summary>GDP 변화에 맞춰 자금 상한을 갱신하는 객체 (해제용 보관)</summary>
+    FundCapUpdater fundCapUpdater;
+
+    /// <summary>잔액 부족 시 안내를 띄우는 객체 (해제용 보관)</summary>
+    InsufficientFundsNotifier insufficientFundsNotifier;
+
     /// <summary>
     /// 모든 컴포넌트의 Awake(시계의 시작 날짜 초기화 포함)가 끝난 뒤 조립한다.
     /// </summary>
     void Start()
     {
         var settings = ResolveSettings();
-        PlayerNation = new PlayerNation(settings.Country);
+        var startingGdp = settings.Country.StartingStats.Gdp;
+        PlayerNation = new PlayerNation(settings.Country,
+            CreatePersonalFunds(startingGdp), CreateNationalBudget(settings, startingGdp));
+
+        // 이후 GDP 가 바뀌면 상한도 따라 바뀐다.
+        fundCapUpdater = new FundCapUpdater(PlayerNation, fundsRules);
+        insufficientFundsNotifier = new InsufficientFundsNotifier(toastView,
+            PlayerNation.PersonalFunds, PlayerNation.NationalBudget);
 
         nationHeader.Bind(PlayerNation);
+        personalFundsView.Bind(PlayerNation.PersonalFunds);
+        nationalBudgetView.Bind(PlayerNation.NationalBudget);
         clockView.Bind(clock);
+    }
+
+    /// <summary>
+    /// 씬 종료 시 연결 객체들의 이벤트 구독을 해제한다.
+    /// </summary>
+    void OnDestroy()
+    {
+        fundCapUpdater?.Dispose();
+        insufficientFundsNotifier?.Dispose();
+    }
+
+    /// <summary>
+    /// 개인 자금: 규칙 데이터의 초기값, 시작 GDP 기준 상한(GDP의 10%)으로 만든다.
+    /// </summary>
+    CappedFund CreatePersonalFunds(double gdp)
+    {
+        return new CappedFund(fundsRules.PersonalStartingFunds, fundsRules.PersonalFundsCapFor(gdp));
+    }
+
+    /// <summary>
+    /// 국가 예산: 난이도의 시작 자금을 초기값으로, 시작 GDP 기준 상한(GDP의 두 배)으로 만든다.
+    /// </summary>
+    CappedFund CreateNationalBudget(NewGameSettings settings, double gdp)
+    {
+        return new CappedFund(settings.Difficulty.StartingFunds, fundsRules.NationalBudgetCapFor(gdp));
     }
 
     /// <summary>
